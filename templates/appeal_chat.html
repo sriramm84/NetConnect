@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Submit Appeal — Let’sConnect</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  body {
+    font-family: Inter, system-ui;
+    background: radial-gradient(circle at top left,#0b1020,#020617);
+    color: #eaf2ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+  }
+  h1 {
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+  .box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 24px 28px;
+    width: 400px;
+    box-shadow: 0 0 25px rgba(124,58,237,0.2);
+  }
+  label {
+    font-size: 14px;
+    color: #9aa6bd;
+  }
+  textarea {
+    width: 100%;
+    height: 120px;
+    margin-top: 6px;
+    margin-bottom: 18px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    padding: 10px;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+  }
+  button {
+    width: 100%;
+    padding: 10px 0;
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover {
+    box-shadow: 0 0 10px rgba(6,182,212,0.4);
+    transform: translateY(-1px);
+  }
+  p {
+    text-align: center;
+    color: #9aa6bd;
+    font-size: 13px;
+    margin-top: 14px;
+  }
+</style>
+</head>
+<body>
+  <h1>Appeal Submission</h1>
+  <div class="box">
+    <p>If you were banned or kicked, you can request the admin to unban you by providing a valid reason below.</p>
+    <label for="reason">Reason for unban:</label>
+    <textarea id="reason" placeholder="Explain why you should be unbanned..."></textarea>
+    <button onclick="submitAppeal()">Submit Appeal</button>
+    <p id="msg"></p>
+  </div>
+
+  <p style="text-align:center;margin-top:10px;">
+    <button onclick="openChat()" style="padding:8px 14px;border:none;border-radius:8px;background:linear-gradient(90deg,#7c3aed,#06b6d4);color:white;cursor:pointer;">
+      💬 Chat with Admin
+    </button>
+  </p>
+
+<script>
+async function submitAppeal() {
+  const reason = document.getElementById('reason').value.trim();
+  if (!reason) {
+    document.getElementById('msg').innerText = "⚠️ Please enter a reason.";
+    return;
+  }
+
+  try {
+    const resWho = await fetch('/whoami');
+    const user = await resWho.json();
+    if (!user.username) {
+      document.getElementById('msg').innerText = "❌ Please log in first.";
+      return;
+    }
+
+    const res = await fetch('/submit_appeal', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: user.username, reason})
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      document.getElementById('msg').innerText = "✅ Appeal submitted successfully. Please wait for admin review.";
+      document.getElementById('reason').value = '';
+    } else {
+      document.getElementById('msg').innerText = "❌ " + data.message;
+    }
+  } catch (err) {
+    document.getElementById('msg').innerText = "⚠️ Failed to submit appeal.";
+  }
+}
+
+async function openChat() {
+  const resWho = await fetch('/whoami');
+  const user = await resWho.json();
+  if (!user.username) {
+    alert("Please log in first.");
+    return;
+  }
+  window.location = `/appeal_chat/${user.username}`;
+}
+</script>
+</body>
+</html>

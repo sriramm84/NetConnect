@@ -1,0 +1,66 @@
+{
+  "PRANAVJEEVA4321": {
+    "password": "$2b$12$WThEiD.FFTfkqNs4V8b0JuAuSEmrQxgnRP/k9NJk/VBj1Htr/8Dn2",
+    "role": "admin",
+    "banned": false,
+    "muted": false,
+    "approved_rooms": []
+  },
+  "23bit0437": {
+    "password": "$2b$12$OQYJONxDYLImYL6W4JeoheF3mt07JUwUQs3d/XusvN1OGosLdW5ei",
+    "role": "student",
+    "banned": false,
+    "muted": false,
+    "approved_rooms": []
+  },
+  "23BIT0437": {
+    "password": "$2b$12$sVrCBFB5T8xd0JKlvb8uIu7eV3WNt4pmDu/OdKFOBxjm7zX63xw6q",
+    "role": "admin",
+    "banned": true,
+    "muted": false,
+    "approved_rooms": []
+  },
+  "YuvanRaj": {
+    "password": "$2b$12$ez2kXdE6icjjVxr7DQILqux50kLfEnXxxzBVq.8LeLYj2ES.HEURS",
+    "role": "student",
+    "banned": false,
+    "muted": false,
+    "approved_rooms": []
+  },
+  "Nayeem-03": {
+    "password": "$2b$12$j3n4.LGjFgqqV5qASjYAY.cZj1EBg33BHbUeZUJBBmBCasT2dQ8au",
+    "role": "student",
+    "banned": false,
+    "muted": true,
+    "approved_rooms": []
+  },
+  "Nayeem-3": {
+    "muted": false
+  },
+  "Rohit09": {
+    "password": "$2b$12$9T7W2kdkcUiHNkmQkeZMDeeVtED.gojtqYaO8.DvBuoxk2oYsD/PC",
+    "role": "student",
+    "banned": false,
+    "muted": true,
+    "approved_rooms": []
+  },
+  "Kowshick01": {
+    "password": "$2b$12$rgxs5fzNc.45l3vL6q5aBu.1YgaNVGe.tvCbErrCO.cMaBXk9gJaq",
+    "role": "admin",
+    "banned": false,
+    "muted": false,
+    "approved_rooms": []
+  },
+  "Sample": {
+    "muted": true
+  },
+  "Abhisek02": {
+    "password": "$2b$12$iKM9ZfjU8QLWIdhpTPY3Z.a/nrDgh35qZX.RXhqebUMcqhDZ3Bt9a",
+    "role": "student",
+    "banned": false,
+    "muted": false,
+    "approved_rooms": [
+      "sample"
+    ]
+  }
+}

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Submit Appeal — Let’sConnect</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+  body {
+    font-family: Inter, system-ui;
+    background: radial-gradient(circle at top left,#0b1020,#020617);
+    color: #eaf2ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    padding-top: 40px;
+  }
+  h1 {
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-size: 26px;
+    margin-bottom: 10px;
+  }
+  .box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 24px 28px;
+    width: 400px;
+    box-shadow: 0 0 25px rgba(124,58,237,0.2);
+    margin-bottom: 25px;
+  }
+  label {
+    font-size: 14px;
+    color: #9aa6bd;
+  }
+  textarea {
+    width: 100%;
+    height: 120px;
+    margin-top: 6px;
+    margin-bottom: 18px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    padding: 10px;
+    font-size: 14px;
+    resize: none;
+    outline: none;
+  }
+  button {
+    width: 100%;
+    padding: 10px 0;
+    background: linear-gradient(90deg,#7c3aed,#06b6d4);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  button:hover {
+    box-shadow: 0 0 10px rgba(6,182,212,0.4);
+    transform: translateY(-1px);
+  }
+  p {
+    text-align: center;
+    color: #9aa6bd;
+    font-size: 13px;
+    margin-top: 14px;
+  }
+
+  /* Chat area */
+  .chat-box {
+    width: 400px;
+    height: 300px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 10px;
+    overflow-y: auto;
+    display: none;
+    box-shadow: 0 0 20px rgba(6,182,212,0.2);
+  }
+  .msg {
+    margin: 8px 0;
+    background: rgba(124,58,237,0.15);
+    border-left: 3px solid #7c3aed;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 14px;
+    word-wrap: break-word;
+  }
+  .msg.admin {
+    background: rgba(6,182,212,0.15);
+    border-left: 3px solid #06b6d4;
+    align-self: flex-end;
+  }
+  .input-area {
+    display: flex;
+    width: 400px;
+    gap: 6px;
+    margin-top: 8px;
+    display: none;
+  }
+  .input-area input {
+    flex: 1;
+    padding: 8px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    outline: none;
+  }
+  .input-area button {
+    width: auto;
+    padding: 8px 14px;
+  }
+</style>
+</head>
+<body>
+  <h1>Appeal Submission</h1>
+
+  <!-- Appeal submission -->
+  <div class="box">
+    <p>If you were banned or kicked, you can request the admin to unban you by providing a valid reason below.</p>
+    <label for="reason">Reason for unban:</label>
+    <textarea id="reason" placeholder="Explain why you should be unbanned..."></textarea>
+    <button onclick="submitAppeal()">Submit Appeal</button>
+    <p id="msg"></p>
+  </div>
+
+  <!-- Real-time Chat Area -->
+  <button id="chatBtn" onclick="openChat()" style="width:400px;margin-bottom:10px;">💬 Start Chat with Admin</button>
+  <div id="chatBox" class="chat-box"></div>
+  <div class="input-area" id="chatInput">
+    <input id="chatMsg" placeholder="Type a message..." />
+    <button onclick="sendChat()">Send</button>
+  </div>
+
+<script>
+const socket = io();
+let myUsername = null;
+
+/* ==== Submit Appeal ==== */
+async function submitAppeal() {
+  const reason = document.getElementById('reason').value.trim();
+  if (!reason) {
+    document.getElementById('msg').innerText = "⚠️ Please enter a reason.";
+    return;
+  }
+
+  try {
+    const resWho = await fetch('/whoami');
+    const user = await resWho.json();
+    if (!user.username) {
+      document.getElementById('msg').innerText = "❌ Please log in first.";
+      return;
+    }
+    myUsername = user.username;
+
+    const res = await fetch('/submit_appeal', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: user.username, reason})
+    });
+
+    const data = await res.json();
+    if (data.status === 'success') {
+      document.getElementById('msg').innerText = "✅ Appeal submitted successfully. You can now chat with admin.";
+      document.getElementById('reason').value = '';
+      document.getElementById('chatBtn').style.display = 'block';
+    } else {
+      document.getElementById('msg').innerText = "❌ " + data.message;
+    }
+  } catch (err) {
+    document.getElementById('msg').innerText = "⚠️ Failed to submit appeal.";
+  }
+}
+
+/* ==== Chat Logic ==== */
+function openChat() {
+  document.getElementById('chatBox').style.display = 'block';
+  document.getElementById('chatInput').style.display = 'flex';
+  document.getElementById('chatBtn').style.display = 'none';
+}
+
+function appendMsg(from, msg, isAdmin = false) {
+  const chat = document.getElementById('chatBox');
+  const el = document.createElement('div');
+  el.className = 'msg' + (isAdmin ? ' admin' : '');
+  el.innerText = `${from}: ${msg}`;
+  chat.appendChild(el);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function sendChat() {
+  const msg = document.getElementById('chatMsg').value.trim();
+  if (!msg || !myUsername) return;
+  socket.emit('appeal_chat_message', {to: 'admin', msg});
+  appendMsg('You', msg);
+  document.getElementById('chatMsg').value = '';
+}
+
+/* ==== Receive Messages ==== */
+socket.on('appeal_chat_message', d => {
+  if (d.from !== myUsername) appendMsg(d.from, d.msg, true);
+});
+
+async function openChat() {
+  const res = await fetch('/whoami');
+  const data = await res.json();
+  if (!data.username) {
+    alert("Please log in first!");
+    return;
+  }
+  window.location = `/appeal_chat/${data.username}`;
+}
+
+
+</script>
+</body>
+</html>

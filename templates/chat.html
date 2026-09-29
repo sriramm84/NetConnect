@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Let’sConnect — Room</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+
+  <style>
+    body { margin:0; height:100vh; display:flex; background: radial-gradient(circle at top left,#0b1020,#020617);
+           font-family:Inter,system-ui; color:#eaf2ff; overflow:hidden; }
+    .app{display:flex;width:100%;height:100%;}
+    .sidebar{width:280px;background:rgba(255,255,255,0.04);border-right:1px solid rgba(255,255,255,0.08);
+             backdrop-filter:blur(8px);display:flex;flex-direction:column;padding:20px;box-shadow:0 0 15px rgba(124,58,237,0.15);
+             overflow-y:auto;}
+    .brand{font-size:28px;font-weight:700;margin-bottom:5px;background:linear-gradient(90deg,#7c3aed,#06b6d4);
+           -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .me{color:#9aa6bd;font-size:13px;margin-bottom:20px;}
+    .section{margin-bottom:20px;}
+    .section-title{font-size:13px;text-transform:uppercase;color:#9aa6bd;letter-spacing:1px;margin-bottom:8px;
+                   border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px;}
+    .list{background:rgba(255,255,255,0.03);border-radius:10px;padding:10px;max-height:160px;overflow-y:auto;}
+    .list-item{padding:8px;margin-bottom:6px;border-radius:8px;cursor:pointer;transition:0.2s;
+               display:flex;justify-content:space-between;align-items:center;}
+    .list-item:hover{background:rgba(124,58,237,0.2);}
+    .row{display:flex;gap:6px;margin-top:8px;}
+    .input{flex:1;padding:8px 10px;border-radius:8px;border:none;outline:none;background:rgba(255,255,255,0.08);
+           color:#eaf2ff;font-size:14px;}
+    .btn{background:linear-gradient(90deg,#7c3aed,#06b6d4);border:none;border-radius:8px;padding:8px 14px;
+         font-size:13px;color:white;cursor:pointer;transition:0.2s;}
+    .btn:hover{box-shadow:0 0 10px rgba(6,182,212,0.3);transform:translateY(-1px);}
+    .btn.small{font-size:12px;padding:6px 10px;}
+    .btn.danger{background:linear-gradient(90deg,#dc2626,#b91c1c);}
+    .del-btn{background:transparent;border:none;color:#ef4444;font-size:16px;cursor:pointer;margin-left:10px;
+             transition:0.2s;}
+    .del-btn:hover{color:#f87171;transform:scale(1.2);}
+    #roomSearch{margin-bottom:8px;border:none;outline:none;background:rgba(255,255,255,0.08);color:#eaf2ff;
+                padding:8px 10px;border-radius:8px;width:100%;font-size:13px;}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(5px);
+           display:flex;justify-content:center;align-items:center;z-index:999;}
+    .modal.hidden{display:none;}
+    .modal-content{background:rgba(30,30,40,0.95);border-radius:12px;padding:25px 30px;width:340px;text-align:center;
+                   color:#eaf2ff;box-shadow:0 0 20px rgba(124,58,237,0.3);animation:fadeIn 0.25s ease-in-out;}
+    .modal-title{font-size:20px;font-weight:600;color:#f87171;margin-bottom:10px;}
+    .modal-body{font-size:14px;margin-bottom:20px;color:#cbd5e1;}
+    .modal-actions{display:flex;justify-content:space-around;}
+    .btn.outline{background:transparent;border:1px solid rgba(255,255,255,0.2);color:#eaf2ff;}
+    .main{flex:1;display:flex;flex-direction:column;background:rgba(255,255,255,0.03);}
+    .header{background:rgba(255,255,255,0.05);padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.08);
+            color:#9aa6bd;font-size:14px;}
+    .chat{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;}
+    .msg{background:rgba(124,58,237,0.15);border-left:3px solid #7c3aed;border-radius:10px;padding:10px 14px;
+         max-width:70%;word-wrap:break-word;animation:fadeIn 0.2s ease-in-out;}
+    .msg.admin{background:rgba(6,182,212,0.15);border-left:3px solid #06b6d4;align-self:flex-end;}
+    .sys{text-align:center;color:#9aa6bd;font-size:13px;margin:10px 0;animation:fadeIn 0.3s ease;}
+    .meta{font-size:12px;color:#9aa6bd;margin-bottom:3px;}
+    .text{color:#eaf2ff;font-size:14px;}
+    .composer{display:flex;padding:12px 18px;background:rgba(255,255,255,0.05);
+              border-top:1px solid rgba(255,255,255,0.08);gap:8px;}
+    table{width:100%;border-collapse:collapse;margin-top:10px;}
+    th,td{border:1px solid rgba(255,255,255,0.1);padding:8px;text-align:left;}
+    th{color:#7c3aed;}
+    button.unban{background:linear-gradient(90deg,#06b6d4,#7c3aed);border:none;border-radius:6px;padding:5px 8px;
+                 color:white;cursor:pointer;}
+    button.chat{background:linear-gradient(90deg,#7c3aed,#06b6d4);border:none;border-radius:6px;padding:5px 8px;
+                 color:white;cursor:pointer;margin-left:5px;}
+    #appeals-section{margin-top:20px;}
+    #bell-notif{position:fixed;bottom:25px;right:25px;width:60px;height:60px;background:linear-gradient(90deg,#7c3aed,#06b6d4);
+                border-radius:50%;display:none;align-items:center;justify-content:center;cursor:pointer;
+                box-shadow:0 0 20px rgba(6,182,212,0.6);z-index:9999;}
+    #bell-notif span{font-size:28px;color:white;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes pulse{from{box-shadow:0 0 10px rgba(124,58,237,0.5);transform:scale(1);}
+                     to{box-shadow:0 0 25px rgba(6,182,212,0.9);transform:scale(1.1);}}
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Let’sConnect</div>
+      <div class="me">You: <span id="me-name">Guest</span> (<span id="me-role">guest</span>)</div>
+
+      <div class="section">
+        <div class="section-title">Rooms</div>
+        <input id="roomSearch" placeholder="🔍 Search rooms..." />
+        <div id="rooms" class="list"></div>
+        <div class="row">
+          <input id="newRoom" placeholder="create room" class="input small">
+          <button id="createRoom" class="btn small">Create</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Online</div>
+        <div id="onlineList" class="list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Commands</div>
+        <div id="commands" class="muted small"></div>
+      </div>
+
+      <div class="row">
+        <button onclick="logout()" class="btn danger">Logout</button>
+      </div>
+
+      <!-- Admin-only appeals -->
+      <div id="appeals-section" style="display:none;">
+        <div class="section-title">Pending Appeals</div>
+        <table id="appeals-table">
+          <tr><th>User</th><th>Reason</th><th>Time</th><th>Action</th></tr>
+        </table>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">Room: <strong id="currentRoom">general</strong></header>
+      <div id="chat" class="chat"></div>
+      <div class="composer">
+        <input id="msgInput" class="input" placeholder="Type message or /help">
+        <input type="file" id="fileInput" style="display:none">
+        <button id="fileBtn" class="btn">📎</button>
+        <button id="sendBtn" class="btn">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- Floating Bell Notification -->
+  <div id="bell-notif" onclick="scrollToAppeals()"><span>🔔</span></div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-title">Delete Room</div>
+      <div class="modal-body">Are you sure you want to delete the room <strong id="roomToDelete"></strong>?</div>
+      <div class="modal-actions">
+        <button id="cancelDelete" class="btn outline">Cancel</button>
+        <button id="confirmDelete" class="btn danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const socket = io();
+let myName=null,myRole=null,currentRoom=null;
+
+/* ==== Identity ==== */
+async function getIdentity(){
+  try{
+    const res=await fetch('/whoami');
+    if(res.ok){
+      const d=await res.json();
+      myName=d.username; myRole=d.role;
+      setIdentity(myName,myRole);
+      const createBtn=document.getElementById('createRoom');
+      if(myRole!=='admin'){
+        createBtn.disabled=true; createBtn.classList.add('muted');
+      } else {
+        createBtn.disabled=false; createBtn.classList.remove('muted');
+        document.getElementById('appeals-section').style.display='block';
+        loadAppeals();
+      }
+    }
+  }catch(e){console.warn('whoami failed',e);}
+}
+
+/* ==== Load Appeals ==== */
+async function loadAppeals(){
+  try{
+    const res=await fetch('/appeals');
+    const text=await res.text();
+    const parser=new DOMParser(); const doc=parser.parseFromString(text,'text/html');
+    const rows=doc.querySelectorAll('table tr');
+    const table=document.getElementById('appeals-table');
+    table.innerHTML='';
+    rows.forEach(r=>table.appendChild(r));
+  }catch(e){console.warn("Failed to load appeals:",e);}
+}
+
+/* ==== Unban + Chat ==== */
+async function unbanUser(username){
+  const res=await fetch('/unban_user',{method:'POST',headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({username})});
+  const data=await res.json();
+  if(data.status==='success'){ appendSys(`✅ ${username} unbanned.`); loadAppeals(); }
+  else appendSys(`❌ Error unbanning ${username}: ${data.message}`);
+}
+function openAppealChat(username){
+  window.open(`/appeal_chat/${username}`,'_blank','width=500,height=600');
+}
+
+/* ==== Identity Display ==== */
+function setIdentity(name,role){
+  document.getElementById('me-name').innerText=name||'Guest';
+  document.getElementById('me-role').innerText=role||'guest';
+  document.getElementById('commands').innerText=
+    role==='admin'
+      ?"Admin: /who /help /create /delete /lock /unlock /mute /unmute /ban /unban /kick /approve /deny"
+      :"Student: /who /help /leave /request <room>";
+}
+
+/* ==== Rooms ==== */
+async function initRooms(){
+  const res=await fetch('/rooms');
+  const rooms=await res.json();
+  const div=document.getElementById('rooms'); div.innerHTML='';
+  for(const r in rooms) addRoomBtn(r);
+}
+function addRoomBtn(name){
+  const d=document.createElement('div'); d.className='list-item room-item'; d.innerText=name;
+  d.onclick=()=>joinRoom(name);
+  if(myRole==='admin'&&name!=='general'){
+    const del=document.createElement('button'); del.innerText='🗑'; del.className='del-btn';
+    del.onclick=e=>{e.stopPropagation(); socket.emit('delete_room',{room:name});};
+    d.appendChild(del);
+  }
+  document.getElementById('rooms').appendChild(d);
+}
+document.getElementById('createRoom').onclick=()=>{
+  if(myRole!=='admin') return appendSys("❌ Only admins can create rooms!");
+  const r=document.getElementById('newRoom').value.trim();
+  if(!r) return appendSys("⚠️ Enter room name.");
+  socket.emit('create_room',{room:r});
+  document.getElementById('newRoom').value='';
+};
+function joinRoom(room){
+  currentRoom=room;
+  document.getElementById('currentRoom').innerText=room;
+  socket.emit('join_room',{room});
+  appendSys(`🟢 Joined room: ${room}`);
+}
+
+/* ==== UI Helpers ==== */
+function appendSys(msg){
+  const c=document.getElementById('chat');
+  const el=document.createElement('div');
+  el.className='sys';
+  if((msg.includes("banned")||msg.includes("kicked")) && myRole==='student'){
+    el.innerHTML=`${msg}<br><button class="btn small" onclick="goToAppeal()">📝 Appeal Now</button>`;
+  } else el.innerHTML=msg;
+  c.appendChild(el); c.scrollTop=c.scrollHeight;
+}
+function appendMsg(d){
+  const c=document.getElementById('chat');
+  const el=document.createElement('div');
+  el.className=(d.role==='admin')?'msg admin':'msg';
+  el.innerHTML=`<div class="meta"><b>${d.user}</b> <span>${d.time||''}</span></div>
+                <div class="text">${escapeHtml(d.msg)}</div>`;
+  c.appendChild(el); c.scrollTop=c.scrollHeight;
+}
+
+/* ==== Messaging ==== */
+document.getElementById('sendBtn').onclick=()=>{
+  const msg=document.getElementById('msgInput').value.trim();
+  if(!msg) return;
+  if(!currentRoom) return appendSys("❌ Please join a room first!");
+  socket.emit('chat_message',{room:currentRoom,msg});
+  document.getElementById('msgInput').value='';
+};
+document.getElementById('fileBtn').onclick=()=>document.getElementById('fileInput').click();
+document.getElementById('fileInput').onchange=()=>{
+  if(!currentRoom) return appendSys("❌ Join a room first!");
+  const f=document.getElementById('fileInput').files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>socket.emit('file_upload',{room:currentRoom,filename:f.name,data:reader.result});
+  reader.readAsDataURL(f); document.getElementById('fileInput').value='';
+};
+
+/* ==== Appeals ==== */
+function goToAppeal(){ window.location='/appeal'; }
+function scrollToAppeals(){
+  document.getElementById('appeals-section').scrollIntoView({behavior:'smooth'});
+  document.getElementById('bell-notif').style.display='none';
+}
+
+/* ==== Socket Events ==== */
+socket.on('connect',()=>{console.log('✅ Connected');getIdentity();});
+socket.on('system_message',d=>appendSys(d.msg));
+socket.on('message',d=>appendMsg(d));
+socket.on('file_shared',d=>{
+  const c=document.getElementById('chat');
+  const el=document.createElement('div');
+  el.className='msg file';
+  el.innerHTML=`<div class="meta"><b>${d.user}</b> sent file</div>
+                <div class="text"><a href="${d.url}" target="_blank">${escapeHtml(d.name)}</a></div>`;
+  c.appendChild(el); c.scrollTop=c.scrollHeight;
+});
+socket.on('new_room',d=>{addRoomBtn(d.room);appendSys(`🆕 Room '${d.room}' created.`);});
+socket.on('online_users',d=>{
+  const ul=document.getElementById('onlineList'); ul.innerHTML='';
+  (d.users||[]).forEach(u=>{const li=document.createElement('div'); li.className='list-item'; li.innerText=u; ul.appendChild(li);});
+});
+socket.on('room_deleted',d=>{
+  const room=d.room; document.querySelectorAll('.room-item').forEach(i=>{if(i.innerText.includes(room)) i.remove();});
+});
+socket.on('force_leave_room',d=>{
+  const {room,msg}=d;
+  if(currentRoom===room){
+    currentRoom=null;
+    document.getElementById('currentRoom').innerText='—';
+    const c=document.getElementById('chat'); c.innerHTML='';
+    appendSys(msg||`🚫 The room '${room}' was deleted.`);
+  }
+});
+socket.on('rooms_list',data=>{const div=document.getElementById('rooms'); div.innerHTML=''; for(const rn in data) addRoomBtn(rn);});
+
+/* ==== Real-Time Appeal Notification ==== */
+socket.on('new_appeal',d=>{
+  if(myRole==='admin'){
+    appendSys(`🔔 New appeal received from <b>${escapeHtml(d.user)}</b>. Reason: "${escapeHtml(d.reason)}"`);
+    loadAppeals();
+    const bell=document.getElementById('bell-notif');
+    bell.style.display='flex';
+    bell.style.animation='pulse 1s infinite alternate';
+    setTimeout(()=>bell.style.animation='',10000);
+  }
+});
+socket.on('new_appeal_message', d => {
+  if (myRole === 'admin') {
+    appendSys(`💬 New message from <b>${escapeHtml(d.from)}</b>: "${escapeHtml(d.msg)}"`);
+    const bell = document.getElementById('bell-notif');
+    bell.style.display = 'flex';
+    setTimeout(() => bell.style.display = 'none', 10000);
+  }
+});
+
+
+/* ==== Helpers ==== */
+function escapeHtml(s){return s?s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])):'';}
+function logout(){window.location='/logout';}
+
+/* ==== Init ==== */
+(async()=>{await getIdentity();await initRooms();})();
+</script>
+</body>
+</html>

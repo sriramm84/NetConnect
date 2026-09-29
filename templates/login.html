@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Let’sConnect — Login</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* Center everything beautifully */
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: radial-gradient(circle at top left, #0b1020, #020617);
+      font-family: "Inter", system-ui;
+      color: #eaf2ff;
+      overflow: hidden;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 40px 45px;
+      width: 350px;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+      animation: fadeIn 0.8s ease;
+    }
+
+    .brand {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      background: linear-gradient(90deg, #7c3aed, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #9aa6bd;
+      margin-bottom: 25px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      margin-bottom: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #eaf2ff;
+      transition: all 0.2s ease;
+    }
+
+    .input:focus {
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 0 8px #7c3aed88;
+    }
+
+    .select {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      margin-bottom: 15px;
+      background: rgba(255, 255, 255, 0.05);
+      color: #eaf2ff;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #fff;
+      background: linear-gradient(90deg, #7c3aed, #06b6d4);
+      transition: all 0.3s ease;
+      letter-spacing: 0.5px;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    }
+
+    .btn.outline {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #9aa6bd;
+      margin-top: 10px;
+    }
+
+    .btn.outline:hover {
+      color: #fff;
+      border-color: #06b6d4;
+    }
+
+    .muted {
+      color: #9aa6bd;
+      margin-top: 14px;
+      font-size: 13px;
+    }
+
+    @keyframes fadeIn {
+      from {opacity: 0; transform: translateY(20px);}
+      to {opacity: 1; transform: translateY(0);}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="brand">Let’sConnect</div>
+    <div class="subtitle">Join the conversation securely.</div>
+
+    <input id="username" placeholder="Enter your username" class="input">
+    <input id="password" type="password" placeholder="Enter your password" class="input">
+    <select id="role" class="select">
+      <option value="student">Student</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button id="login" class="btn">Login</button>
+    <button id="signup" class="btn outline">Create Account</button>
+    <p id="msg" class="muted"></p>
+  </div>
+
+<script>
+async function postJSON(url, body){
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  });
+  return r.json().catch(()=>({status:'error',message:'bad json'}));
+}
+
+document.getElementById('login').onclick = async ()=>{
+  const u=document.getElementById('username').value.trim();
+  const p=document.getElementById('password').value;
+  if(!u||!p){document.getElementById('msg').innerText='⚠️ Fill all fields';return;}
+  const res = await postJSON('/login',{username:u,password:p});
+  if(res.status==='success'){
+    window.location = (res.role === 'admin') ? '/admin' : '/student';
+  } else {
+    document.getElementById('msg').innerText = res.message || '❌ Login failed';
+  }
+};
+
+document.getElementById('signup').onclick = async ()=>{
+  const u=document.getElementById('username').value.trim();
+  const p=document.getElementById('password').value;
+  const role=document.getElementById('role').value;
+  if(!u||!p){document.getElementById('msg').innerText='⚠️ Fill all fields';return;}
+  const res = await postJSON('/signup',{username:u,password:p,role:role});
+  if(res.status==='success'){
+    document.getElementById('msg').innerText = '✅ Account created. Please login.';
+  } else {
+    document.getElementById('msg').innerText = res.message || '❌ Signup failed';
+  }
+};
+</script>
+</body>
+</html>
